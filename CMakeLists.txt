@@ -60,6 +60,7 @@ option(RESOLV_SUPPORT "NS resolve plugin support" ON)
 option(STRUCT_SUPPORT "Struct plugin support" ON)
 option(ULOOP_SUPPORT "Uloop plugin support" ${DEFAULT_ULOOP_SUPPORT})
 option(LOG_SUPPORT "Log plugin support" ON)
+option(L2TP_SUPPORT) "L2TP tunnel plugin support" ON
 
 set(LIB_SEARCH_PATH "${CMAKE_INSTALL_PREFIX}/lib/ucode/*.so:${CMAKE_INSTALL_PREFIX}/share/ucode/*.uc:./*.so:./*.uc" CACHE STRING "Default library search path")
 string(REPLACE ":" "\", \"" LIB_SEARCH_DEFINE "${LIB_SEARCH_PATH}")
@@ -264,6 +265,13 @@ if(LOG_SUPPORT)
     target_link_libraries(log_lib ${libubox})
     set_target_properties(log_lib PROPERTIES COMPILE_DEFINITIONS HAVE_ULOG)
   endif()
+endif()
+
+if(L2TP_SUPPORT)
+  set(LIBRARIES ${LIBRARIES} l2tp_lib)
+  add_library(l2tp_lib MODULE lib/l2tp.c)
+  set_target_properties(l2tp_lib PROPERTIES OUTPUT_NAME l2tp PREFIX "")
+  target_link_options(l2tp_lib PRIVATE ${UCODE_MODULE_LINK_OPTIONS})
 endif()
 
 if(UNIT_TESTING)
