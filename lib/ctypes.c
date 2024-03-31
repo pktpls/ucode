@@ -413,6 +413,66 @@ cif_gc(void *ud)
 	free(cif);
 }
 
+// https://www.chiark.greenend.org.uk/doc/libffi-dev/html/The-Closure-API.html
+// https://github.com/LuaJIT/LuaJIT/blob/c525bcb9024510cad9e170e12b6209aedb330f83/src/lib_ffi.c#L428
+
+// void *ffi_closure_alloc (size_t size, void **code)
+// void ffi_closure_free (void *writable)
+// ffi_status ffi_prep_closure_loc (ffi_closure *closure, ffi_cif *cif, void (*fun) (ffi_cif *cif, void *ret, void **args, void *user_data), void *user_data, void *codeloc)
+
+static uc_resource_type_t *cb_type;
+
+typedef struct {
+	void *fn;
+} uc_cb_t;
+
+static uc_value_t *
+ctypes_new_cb(uc_vm_t *vm, size_t nargs)
+{
+	if (nargs != 1) {
+		return NULL;
+	}
+	// uc_value_t *arg0 = uc_fn_arg(0);
+
+	// get arg0 backing function and its args+return length (???)
+	uc_cb_t *cb = xalloc(
+		sizeof(uc_cb_t) + 123
+	);
+
+	// ffi_closure_alloc & ffi_prep_closure_loc & store in cb
+	// see https://github.com/libffi/libffi/issues/591 for barebones examples
+
+	return uc_resource_new(cb_type, cb);
+}
+
+static uc_value_t *
+cb_set(uc_vm_t *vm, size_t nargs)
+{
+	ptr_box_t **box = uc_fn_this("ctypes.cb");
+	if (!box || !*box)
+		return NULL;
+
+	return NULL;
+}
+
+static uc_value_t *
+cb_free(uc_vm_t *vm, size_t nargs)
+{
+	ptr_box_t **box = uc_fn_this("ctypes.cb");
+	if (!box || !*box)
+		return NULL;
+
+	return NULL;
+}
+
+static void
+cb_gc(void *ud)
+{
+	uc_cb_t *cb = ud;
+
+	free(cb);
+}
+
 static void
 register_constants(uc_vm_t *vm, uc_value_t *scope)
 {
@@ -477,8 +537,14 @@ static const uc_function_list_t cif_fns[] = {
 	{ "call", cif_call },
 };
 
+static const uc_function_list_t cb_fns[] = {
+	{ "set",  cb_set },
+	{ "free", cb_free },
+};
+
 static const uc_function_list_t global_fns[] = {
 	{ "ptr",    ctypes_new_ptr },
+	{ "cb",     ctypes_new_cb },
 	{ "symbol", ctypes_symbol },
 	{ "prep",   ctypes_prepare_cif },
 	{ "errno",  ctypes_errno },
@@ -490,6 +556,7 @@ void uc_module_init(uc_vm_t *vm, uc_value_t *scope)
 
 	ptr_type = uc_type_declare(vm, "ctypes.ptr", ptr_fns, ptr_gc);
 	cif_type = uc_type_declare(vm, "ctypes.cif", cif_fns, cif_gc);
+	cb_type = uc_type_declare(vm, "ctypes.cb", cb_fns, cb_gc);
 
 	uc_vm_registry_set(vm, "ctypes.errno", ucv_int64_new(0));
 
